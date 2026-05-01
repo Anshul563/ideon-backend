@@ -55,26 +55,61 @@ export const getPaymentStatus = async (orderId: string) => {
   const ZAP_KEY = process.env.ZAP_KEY;
   const ZAP_URL = "https://pay.zapupi.com/api";
 
+  if (!ZAP_KEY) {
+    throw new Error("ZAP_KEY is not defined in environment variables");
+  }
+
   const payload = {
     zap_key: ZAP_KEY,
     order_id: orderId,
   };
 
-  const response = await axios.post(`${ZAP_URL}/order-status`, payload);
-  return response.data;
+  try {
+    const response = await axios.post(`${ZAP_URL}/order-status`, payload);
+    
+    const zapStatus = response.data.status;
+    const txnId = response.data.txn_id || response.data.txnId || response.data.utr;
+    
+    console.log(`Payment Status for ${orderId}: ${zapStatus}, TxnId: ${txnId}`);
+    
+    if (zapStatus) {
+      // Update our DB with the status from ZapUPI
+      await updatePaymentStatus(orderId, txnId, zapStatus);
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to get payment status from ZapUPI:", error.response?.data || error.message);
+    throw new Error(`Failed to verify payment: ${error.response?.data?.message || error.message}`);
+  }
 };
 
 export const updatePaymentStatus = async (orderId: string, txnId: string, status: string) => {
   const normalizedStatus = status.toUpperCase();
   
+  let finalStatus: "Pending" | "Success" | "Failed" | "Cancelled" | "Timeout" = "Failed";
+
+  if (normalizedStatus === "SUCCESS" || normalizedStatus === "COMPLETED") {
+    finalStatus = "Success";
+  } else if (normalizedStatus === "CANCELLED" || normalizedStatus === "CANCELED") {
+    finalStatus = "Cancelled";
+  } else if (normalizedStatus === "TIMEOUT" || normalizedStatus === "EXPIRED") {
+    finalStatus = "Timeout";
+  } else if (normalizedStatus === "PENDING") {
+    finalStatus = "Pending";
+  }
+
   const [payment] = await db
     .update(payments)
-    .set({ txnId, status: status }) // Keep original status for records
+    .set({ 
+      txnId: txnId || undefined, 
+      status: finalStatus 
+    })
     .where(eq(payments.orderId, orderId))
     .returning();
 
-  if (payment && (normalizedStatus === "SUCCESS" || normalizedStatus === "COMPLETED")) {
-    // Upgrade User Plan
+  if (payment && finalStatus === "Success" && payment.planId) {
+    // Upgrade User Plan - Use userId directly (already a string)
     await db
       .update(users)
       .set({ plan: payment.planId })
@@ -82,4 +117,6 @@ export const updatePaymentStatus = async (orderId: string, txnId: string, status
     
     console.log(`User ${payment.userId} upgraded to plan ${payment.planId} (Order: ${orderId})`);
   }
+
+  return payment;
 };

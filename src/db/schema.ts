@@ -1,4 +1,6 @@
-import { pgTable, serial, text, timestamp, jsonb, customType } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, jsonb, customType, pgEnum } from "drizzle-orm/pg-core";
+
+export const paymentStatusEnum = pgEnum("payment_status", ["Pending", "Success", "Failed", "Cancelled", "Timeout"]);
 
 // Define vector type
 const vector = customType<{ data: number[] }>({
@@ -40,6 +42,6 @@ export const payments = pgTable("payments", {
   txnId: text("txn_id"),
   amount: text("amount").notNull(),
   planId: text("plan_id"),
-  status: text("status").default("Pending"), // Pending, Success, Failed
+  status: paymentStatusEnum("status").default("Pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
