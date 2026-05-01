@@ -65,19 +65,21 @@ export const getPaymentStatus = async (orderId: string) => {
 };
 
 export const updatePaymentStatus = async (orderId: string, txnId: string, status: string) => {
+  const normalizedStatus = status.toUpperCase();
+  
   const [payment] = await db
     .update(payments)
-    .set({ txnId, status })
+    .set({ txnId, status: status }) // Keep original status for records
     .where(eq(payments.orderId, orderId))
     .returning();
 
-  if (payment && status === "Success") {
+  if (payment && (normalizedStatus === "SUCCESS" || normalizedStatus === "COMPLETED")) {
     // Upgrade User Plan
     await db
       .update(users)
       .set({ plan: payment.planId })
       .where(eq(users.id, parseInt(payment.userId)));
     
-    console.log(`User ${payment.userId} upgraded to plan ${payment.planId}`);
+    console.log(`User ${payment.userId} upgraded to plan ${payment.planId} (Order: ${orderId})`);
   }
 };

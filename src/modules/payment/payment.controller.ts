@@ -29,12 +29,15 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
 export const handleWebhook = async (req: Request, res: Response) => {
   try {
-    const { order_id, txn_id, status } = req.body;
+    const payload = req.body;
+    console.log("Full Webhook Payload received:", JSON.stringify(payload, null, 2));
 
-    console.log(`Webhook received: Order ${order_id}, Status ${status}`);
+    const orderId = payload.order_id || payload.orderId;
+    const txnId = payload.txn_id || payload.txnId || payload.utr;
+    const status = payload.status || payload.txnStatus;
 
-    if (order_id && status) {
-      await paymentService.updatePaymentStatus(order_id, txn_id, status);
+    if (orderId && status) {
+      await paymentService.updatePaymentStatus(orderId, txnId, status);
     }
 
     res.json({ status: "ok" });
