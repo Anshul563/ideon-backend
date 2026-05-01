@@ -4,6 +4,8 @@ import {
   competitorPrompt,
   improvementPrompt,
   scoringPrompt,
+  stressTestPrompt,
+  roastPrompt,
 } from "./prompts";
 
 import { runAI } from "./aiRunner";
@@ -33,5 +35,21 @@ export const runFullPipeline = async (idea: string) => {
     competitors,
     improvements,
     scoring,
+  };
+};
+
+export const runStressTest = async (idea: string) => {
+  const result = await runAI(stressTestPrompt(idea));
+  return {
+    idea,
+    ...result,
+  };
+};
+
+export const runRoast = async (idea: string) => {
+  const result = await runAI(roastPrompt(idea));
+  return {
+    idea,
+    ...result,
   };
 };

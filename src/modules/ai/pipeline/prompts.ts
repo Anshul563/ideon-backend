@@ -30,7 +30,7 @@ Do NOT use placeholders like "Company A" or "Competitor B". Use the names of act
 Return JSON:
 {
   "competitors": [
-    { "name": "Actual Company Name", "description": "What they do", "weakness": "A specific weakness" }
+    { "name": "Actual Company Name", "website": "company.com", "description": "What they do", "weakness": "A specific weakness" }
   ]
 }
 `;
@@ -62,5 +62,48 @@ Return JSON:
   },
   "verdict": "",
   "reason": ""
+}
+`;
+
+export const stressTestPrompt = (idea: string) => `
+BRUTALLY HONEST STRESS TEST:
+"${idea}"
+
+Analyze why this idea will likely fail. Be extremely critical. 
+Focus on:
+1. Why it will fail (The hard truth)
+2. Market risks (What you are ignoring)
+3. Execution challenges (Why it's harder than you think)
+
+Return JSON:
+{
+  "failure_reasons": [
+    { "title": "Too crowded market", "description": "Short explanation" },
+    { "title": "Hard to monetize", "description": "Short explanation" }
+  ],
+  "market_risks": [
+    { "title": "Low switching cost", "description": "Short explanation" }
+  ],
+  "execution_challenges": [
+    { "title": "Requires strong network effect", "description": "Short explanation" }
+  ],
+  "brutal_verdict": "A one-sentence harsh reality check"
+}
+`;
+
+export const roastPrompt = (idea: string) => `
+ROAST THIS SAAS IDEA:
+"${idea}"
+
+Be extremely sarcastic, mean, and funny. Point out why it's a "clown" idea. 
+Format your output as a series of "roast points" and a final "burn".
+
+Return JSON:
+{
+  "roasts": [
+    { "point": "The 'Unique' Value Prop", "comment": "Sarcastic comment about why it's not unique" },
+    { "point": "The Monetization 'Plan'", "comment": "Sarcastic comment about the lack of revenue" }
+  ],
+  "the_burn": "One final extremely mean sentence"
 }
 `;

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createIdea } from "../modules/idea/idea.controller";
+import { createIdea, getIdeaById } from "../modules/idea/idea.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { findSimilarIdeas, generateEmbedding } from "../modules/embedding/embedding.service";
 
@@ -7,6 +7,7 @@ import { findSimilarIdeas, generateEmbedding } from "../modules/embedding/embedd
 const router = Router();
 
 router.post("/analyze", authMiddleware, createIdea);
+router.get("/:id", authMiddleware, getIdeaById);
 
 router.post("/similar", async (req, res) => {
   const { idea } = req.body;
