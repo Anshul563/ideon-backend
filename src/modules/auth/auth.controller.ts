@@ -46,3 +46,22 @@ export const getProfile = async (req: any, res: Response) => {
   const { password, ...safeUser } = user;
   res.json(safeUser);
 };
+
+export const updateProfilePic = async (req: any, res: Response) => {
+  const { url } = req.body;
+  const userId = req.user.id;
+
+  if (!url) {
+    return res.status(400).json({ message: "URL is required" });
+  }
+
+  try {
+    await db.update(users)
+      .set({ profilePic: url })
+      .where(eq(users.id, userId));
+    
+    res.json({ message: "Profile picture updated successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

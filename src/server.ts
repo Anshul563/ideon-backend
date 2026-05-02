@@ -12,16 +12,17 @@ import paymentRoutes from "./modules/payment/payment.routes";
 const app = express();
 
 app.use(cors());
-app.use(express.json());
-
 import { createRouteHandler } from "uploadthing/express";
 import { uploadRouter } from "./modules/upload/uploadthing";
+
+app.use("/api/uploadthing", createRouteHandler({ router: uploadRouter }));
+
+app.use(express.json());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/ideas", ideaRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payment", paymentRoutes);
-app.use("/api/uploadthing", createRouteHandler({ router: uploadRouter }));
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);
