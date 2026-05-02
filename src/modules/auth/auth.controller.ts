@@ -35,16 +35,42 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
-export const getProfile = async (req: any, res: Response) => {
-  const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
-  
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
-  }
+import { ideas } from "../../db/schema";
 
-  // Remove password from response
-  const { password, ...safeUser } = user;
-  res.json(safeUser);
+export const getProfile = async (req: any, res: Response) => {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Calculate tokens left today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Cast userId to string for text column comparison
+    const userIdStr = String(req.user.id);
+    const userIdeasToday = await db.select().from(ideas)
+      .where(eq(ideas.userId, userIdStr));
+    
+    const filteredToday = userIdeasToday.filter(i => {
+      if (!i.createdAt) return false;
+      return new Date(i.createdAt).getTime() >= today.getTime();
+    });
+    
+    const uniqueIdeasToday = new Set(filteredToday.map(i => i.idea.trim().toLowerCase())).size;
+    const tokensLeft = Math.max(0, 3 - uniqueIdeasToday);
+
+    console.log(`User ${userIdStr} - Unique ideas today: ${uniqueIdeasToday}, Tokens left: ${tokensLeft}`);
+
+    // Remove password from response
+    const { password, ...safeUser } = user;
+    res.json({ ...safeUser, tokensLeft });
+  } catch (err) {
+    console.error("Error in getProfile:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export const updateProfilePic = async (req: any, res: Response) => {
