@@ -1,20 +1,67 @@
-import { analyzeIdea } from "../../../utils/hf";
+import { analyzeIdea, MODELS } from "../../../utils/hf";
 
-export const runAI = async (prompt: string, retries = 2): Promise<any> => {
+const extractJSON = (text: string | undefined | null) => {
+  if (!text) return null;
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
   try {
-    const raw = await analyzeIdea(prompt);
-    
-    if (!raw) throw new Error("No output from AI");
-    
-    const cleaned = raw.match(/\{[\s\S]*\}/);
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
+  }
+};
 
-    if (!cleaned) throw new Error("No JSON");
+export const runAI = async (prompt: string, retries = 1): Promise<any> => {
+  try {
+    // Run two different models for accuracy with individual fallbacks
+    const results = await Promise.allSettled([
+      analyzeIdea(prompt, MODELS.QWEN),
+      analyzeIdea(prompt, MODELS.LLAMA),
+    ]);
 
-    return JSON.parse(cleaned[0]);
+    const resA = results[0].status === "fulfilled" ? results[0].value : null;
+    const resB = results[1].status === "fulfilled" ? results[1].value : null;
+
+    if (!resA && !resB) throw new Error("Both AI models failed");
+
+    // If only one succeeded, just use that one
+    if (!resA || !resB) {
+      const successfulRes = resA || resB;
+      return extractJSON(successfulRes) || { error: "JSON Parsing Failed" };
+    }
+
+    // Judge/Reconcile Step if both succeeded
+    const reconciliationPrompt = `
+      You are a Strategic Data Auditor. I have two AI-generated reports for the same query. 
+      Your task is to compare them and produce a single, most accurate JSON response.
+      
+      Original Query: ${prompt}
+      
+      Report A: ${resA}
+      
+      Report B: ${resB}
+      
+      RULES:
+      1. If the reports disagree on facts, use the more detailed or logical one.
+      2. Merge unique insights from both.
+      3. Return ONLY the final reconciled JSON. NO EXPLANATION.
+    `;
+
+    try {
+      const reconciledRaw = await analyzeIdea(reconciliationPrompt, MODELS.LLAMA);
+      const finalJSON = extractJSON(reconciledRaw);
+      if (finalJSON) return finalJSON;
+    } catch (judgeErr) {
+      console.error("Judge reconciliation failed, falling back to Model A");
+    }
+
+    // Fallback to resA if reconciliation fails
+    return extractJSON(resA) || extractJSON(resB) || { error: "JSON Parsing Failed" };
   } catch (err: any) {
+    console.error("AI dual-run failed:", err);
     if (retries > 0) {
       return runAI(prompt + "\nReturn ONLY JSON.", retries - 1);
     }
-    return { error: "Failed after retries" };
+    return { error: "Failed after multi-model attempt" };
   }
 };

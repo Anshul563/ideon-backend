@@ -11,25 +11,20 @@ import {
 import { runAI } from "./aiRunner";
 import { getCompetitors } from "../../competitor/competitor.service";
 
-export const runFullPipeline = async (idea: string) => {
-  // Step 1: Expand
-  const expanded = await runAI(expandPrompt(idea));
-
-  // Step 2: Market
-  const market = await runAI(marketPrompt(idea));
-
-  // Step 3: Competitors
-  const competitors = await getCompetitors(idea);
-
-  // Step 4: Improvements
-  const improvements = await runAI(improvementPrompt(idea));
-
-  // Step 5: Scoring
-  const scoring = await runAI(scoringPrompt(idea));
+export const runFullPipeline = async (idea: string, context?: any) => {
+  // Run all independent steps in parallel for maximum speed
+  const [expanded, market, competitors, improvements, scoring] = await Promise.all([
+    runAI(expandPrompt(idea, context)),
+    runAI(marketPrompt(idea, context)),
+    getCompetitors(idea, context),
+    runAI(improvementPrompt(idea, context)),
+    runAI(scoringPrompt(idea, context)),
+  ]);
 
   // Merge everything
   return {
     idea,
+    context,
     expanded,
     market,
     competitors,
@@ -38,18 +33,20 @@ export const runFullPipeline = async (idea: string) => {
   };
 };
 
-export const runStressTest = async (idea: string) => {
-  const result = await runAI(stressTestPrompt(idea));
+export const runStressTest = async (idea: string, context?: any) => {
+  const result = await runAI(stressTestPrompt(idea, context));
   return {
     idea,
+    context,
     ...result,
   };
 };
 
-export const runRoast = async (idea: string) => {
-  const result = await runAI(roastPrompt(idea));
+export const runRoast = async (idea: string, context?: any) => {
+  const result = await runAI(roastPrompt(idea, context));
   return {
     idea,
+    context,
     ...result,
   };
 };

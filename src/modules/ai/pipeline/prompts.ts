@@ -1,6 +1,9 @@
-export const expandPrompt = (idea: string) => `
+export const expandPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 Expand and clarify this SaaS idea in detail:
 "${idea}"
+${contextStr}
 
 Return JSON:
 {
@@ -9,10 +12,14 @@ Return JSON:
   "core_problem": ""
 }
 `;
+};
 
-export const marketPrompt = (idea: string) => `
+export const marketPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 Analyze market demand for:
 "${idea}"
+${contextStr}
 
 Return JSON:
 {
@@ -20,10 +27,14 @@ Return JSON:
   "reason": ""
 }
 `;
+};
 
-export const competitorPrompt = (idea: string) => `
+export const competitorPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 List 3 REAL, EXISTING companies that are competitors to this SaaS idea:
 "${idea}"
+${contextStr}
 
 Do NOT use placeholders like "Company A" or "Competitor B". Use the names of actual real-world businesses.
 
@@ -34,10 +45,14 @@ Return JSON:
   ]
 }
 `;
+};
 
-export const improvementPrompt = (idea: string) => `
+export const improvementPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 Improve this SaaS idea:
 "${idea}"
+${contextStr}
 
 Return JSON:
 {
@@ -45,10 +60,14 @@ Return JSON:
   "better_versions": []
 }
 `;
+};
 
-export const scoringPrompt = (idea: string) => `
+export const scoringPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 Score this SaaS idea:
 "${idea}"
+${contextStr}
 
 Return JSON:
 {
@@ -64,10 +83,14 @@ Return JSON:
   "reason": ""
 }
 `;
+};
 
-export const stressTestPrompt = (idea: string) => `
+export const stressTestPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  return `
 BRUTALLY HONEST STRESS TEST:
 "${idea}"
+${contextStr}
 
 Analyze why this idea will likely fail. Be extremely critical. 
 Focus on:
@@ -90,10 +113,14 @@ Return JSON:
   "brutal_verdict": "A one-sentence harsh reality check"
 }
 `;
+};
 
-export const roastPrompt = (idea: string) => `
+export const roastPrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}` : "";
+  return `
 ROAST THIS SAAS IDEA:
 "${idea}"
+${contextStr}
 
 Be extremely sarcastic, mean, and funny. Point out why it's a "clown" idea. 
 Format your output as a series of "roast points" and a final "burn".
@@ -107,3 +134,4 @@ Return JSON:
   "the_burn": "One final extremely mean sentence"
 }
 `;
+};

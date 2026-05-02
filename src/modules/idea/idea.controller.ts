@@ -7,7 +7,14 @@ import { generateEmbedding } from "../embedding/embedding.service";
 
 
 export const createIdea = async (req: any, res: any) => {
-  const { idea, mode = "full" } = req.body;
+  const { 
+    idea, 
+    mode = "full", 
+    targetAudience, 
+    geographicScope,
+    businessModel,
+    budget
+  } = req.body;
   const userId = req.user.id;
 
   // Check plan and usage
@@ -26,12 +33,14 @@ export const createIdea = async (req: any, res: any) => {
   const embedding = await generateEmbedding(idea);
 
   let result;
+  const context = { targetAudience, geographicScope, businessModel, budget };
+  
   if (mode === "stress") {
-    result = await runStressTest(idea);
+    result = await runStressTest(idea, context);
   } else if (mode === "roast") {
-    result = await runRoast(idea);
+    result = await runRoast(idea, context);
   } else {
-    result = await runFullPipeline(idea);
+    result = await runFullPipeline(idea, context);
   }
 
   const [saved] = await db
@@ -40,6 +49,10 @@ export const createIdea = async (req: any, res: any) => {
       id: uuidv4(),
       userId,
       idea,
+      targetAudience,
+      geographicScope,
+      businessModel,
+      budget,
       embedding,
       result,
       mode,

@@ -1,11 +1,14 @@
 import { scrapeProductHunt } from "./phScraper";
 import { runAI } from "../ai/pipeline/aiRunner";
 
-export const getCompetitors = async (idea: string) => {
+export const getCompetitors = async (idea: string, context?: any) => {
+  const contextStr = context ? `Context: Target Audience: ${context.targetAudience}, Geography: ${context.geographicScope}, Model: ${context.businessModel}, Budget: ${context.budget}` : "";
+  
   // Step 1: Generate keywords using AI
   const keywordPrompt = `
   Generate 3 search keywords for this SaaS idea:
   "${idea}"
+  ${contextStr}
 
   Return JSON:
   { "keywords": ["", "", ""] }
@@ -15,13 +18,10 @@ export const getCompetitors = async (idea: string) => {
 
   const keywords = keywordRes?.keywords || [idea];
 
-  // Step 2: Scrape Product Hunt
-  let competitors: any[] = [];
-
-  for (const keyword of keywords) {
-    const results = await scrapeProductHunt(keyword);
-    competitors = [...competitors, ...results];
-  }
+  // Step 2: Scrape Product Hunt in parallel
+  const scrapePromises = keywords.map((keyword: string) => scrapeProductHunt(keyword));
+  const scrapeResults = await Promise.all(scrapePromises);
+  const competitors = scrapeResults.flat();
 
   // Remove duplicates
   const unique = Array.from(
@@ -33,6 +33,7 @@ export const getCompetitors = async (idea: string) => {
     ? `
       Analyze these real-world competitors and add a "weakness" field for each:
       ${JSON.stringify(unique)}
+      ${contextStr}
 
       Return JSON:
       {
@@ -44,6 +45,7 @@ export const getCompetitors = async (idea: string) => {
     : `
       List 3 REAL, EXISTING companies that are competitors to this SaaS idea:
       "${idea}"
+      ${contextStr}
 
       Do NOT use placeholders like "Company A". Use actual names of real companies.
       
