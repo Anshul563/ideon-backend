@@ -8,6 +8,7 @@ import ideaRoutes from "./routes/idea.routes";
 import authRoutes from "./routes/auth.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
 import paymentRoutes from "./modules/payment/payment.routes";
+import adminRoutes from "./modules/admin/admin.routes";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/ideas", ideaRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);

@@ -1,20 +1,62 @@
 import { Request, Response } from "express";
 import * as paymentService from "./payment.service";
 import { db } from "../../config/db";
-import { payments } from "../../db/schema";
+import { payments, coupons } from "../../db/schema";
 import { eq } from "drizzle-orm";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { amount, planId } = req.body;
-    const userId = (req as any).user.id; // Assuming user is attached by auth middleware
+    const { amount, planId, couponCode } = req.body;
+    const userId = (req as any).user.id;
 
     if (!amount) {
       return res.status(400).json({ message: "Amount is required" });
     }
 
-    const order = await paymentService.createPaymentOrder(userId.toString(), amount, planId);
+    const order = await paymentService.createPaymentOrder(userId.toString(), amount, planId, couponCode);
     res.json(order);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const validateCoupon = async (req: Request, res: Response) => {
+  try {
+    const { code, amount } = req.body;
+    
+    const existingCoupons = await db.select().from(coupons).where(eq(coupons.code, code));
+    
+    if (existingCoupons.length === 0) {
+      return res.status(404).json({ message: "Coupon not found" });
+    }
+    
+    const coupon = existingCoupons[0];
+    if (coupon.isActive !== "true") {
+      return res.status(400).json({ message: "Coupon is inactive" });
+    }
+    
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+      return res.status(400).json({ message: "Coupon has expired" });
+    }
+    
+    if ((coupon.usageCount ?? 0) >= (coupon.usageLimit ?? 0)) {
+      return res.status(400).json({ message: "Coupon limit reached" });
+    }
+    
+    let discountAmount = 0;
+    if (coupon.discountType === "percentage") {
+      discountAmount = (parseFloat(amount) * (coupon.discountValue ?? 0)) / 100;
+    } else {
+      discountAmount = (coupon.discountValue ?? 0);
+    }
+    
+    res.json({
+      valid: true,
+      discountAmount,
+      finalAmount: Math.max(0, parseFloat(amount) - discountAmount),
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue
+    });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

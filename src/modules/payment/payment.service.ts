@@ -1,25 +1,57 @@
 import axios from "axios";
 import { db } from "../../config/db";
-import { payments, users } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { payments, users, coupons } from "../../db/schema";
+import { eq, and, gt } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
-export const createPaymentOrder = async (userId: string, amount: string, planId: string) => {
+export const createPaymentOrder = async (userId: string, amount: string, planId: string, couponCode?: string) => {
   const ZAP_KEY = process.env.ZAP_KEY;
   const ZAP_URL = "https://pay.zapupi.com/api";
 
   const orderId = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
-  console.log("Initializing payment order:", { userId, amount, orderId, planId });
+  console.log("Initializing payment order:", { userId, amount, orderId, planId, couponCode });
 
   if (!ZAP_KEY) {
     throw new Error("ZAP_KEY is not defined in environment variables");
   }
 
+  let finalAmount = parseFloat(amount);
+  let discountAmount = 0;
+  let validatedCoupon = null;
+
+  if (couponCode) {
+    const existingCoupons = await db.select().from(coupons).where(and(eq(coupons.code, couponCode), eq(coupons.isActive, "true")));
+    if (existingCoupons.length > 0) {
+      const coupon = existingCoupons[0];
+      
+      // Check expiry
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+        throw new Error("Coupon has expired");
+      }
+
+      // Check usage limit
+      if ((coupon.usageCount ?? 0) >= (coupon.usageLimit ?? 0)) {
+        throw new Error("Coupon usage limit reached");
+      }
+
+      if (coupon.discountType === "percentage") {
+        discountAmount = (finalAmount * (coupon.discountValue ?? 0)) / 100;
+      } else {
+        discountAmount = (coupon.discountValue ?? 0);
+      }
+
+      finalAmount = Math.max(0, finalAmount - discountAmount);
+      validatedCoupon = coupon;
+    } else {
+      throw new Error("Invalid or inactive coupon code");
+    }
+  }
+
   const payload = {
     zap_key: ZAP_KEY,
     order_id: orderId,
-    amount: amount,
-    remark: `Plan Upgrade | User: ${userId}`,
+    amount: finalAmount.toFixed(2),
+    remark: `Plan Upgrade | User: ${userId}${couponCode ? ` | Coupon: ${couponCode}` : ""}`,
     success_url: `${process.env.FRONTEND_URL}/dashboard?payment=success&order_id=${orderId}`,
     failed_url: `${process.env.FRONTEND_URL}/dashboard?payment=failed&order_id=${orderId}`,
     timeout_url: `${process.env.FRONTEND_URL}/dashboard?payment=timeout&order_id=${orderId}`,
@@ -36,10 +68,17 @@ export const createPaymentOrder = async (userId: string, amount: string, planId:
       await db.insert(payments).values({
         userId,
         orderId,
-        amount,
+        amount: finalAmount.toFixed(2),
         planId,
+        couponCode: couponCode || null,
+        discountAmount: discountAmount.toFixed(2),
         status: "Pending",
       });
+
+      // Increment coupon usage count
+      if (validatedCoupon) {
+        await db.update(coupons).set({ usageCount: (validatedCoupon.usageCount ?? 0) + 1 }).where(eq(coupons.id, validatedCoupon.id));
+      }
 
       return response.data;
     } else {
