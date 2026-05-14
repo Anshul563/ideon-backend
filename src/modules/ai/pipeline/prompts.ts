@@ -135,3 +135,59 @@ Return JSON:
 }
 `;
 };
+
+export const architecturePrompt = (idea: string, context?: any) => {
+  const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}` : "";
+  return `
+Design an ULTRA-ADVANCED, HYPER-SCALABLE system architecture for this SaaS idea:
+"${idea}"
+${contextStr}
+
+Your goal is to provide a technical blueprint that represents a multi-region, enterprise-grade infrastructure. 
+Do NOT simplify. Include complex orchestration and high-availability patterns.
+
+Mandatory Components to include:
+- Edge Layer: Route 53, CloudFront CDN, WAF, Global Accelerator.
+- Access Layer: NGINX Ingress / Kong / AWS ALB, Cognito / Auth0 / Clerk.
+- Messaging: Kafka / RabbitMQ for event-driven flows, Redis for Pub/Sub.
+- Specialized Logic: Websocket Gateway (if real-time), Job Orchestrators (BullMQ, Temporal).
+- AI/Data: Vector DBs (Pinecone, Weaviate) if AI-related, Snowflake/BigQuery for analytics.
+- Persistent Tier: Multi-AZ PostgreSQL (RDS), ElastiCache (Redis/Memcached).
+- DevOps/Observability: CI/CD Pipeline (GitHub Actions), Prometheus/Grafana, ELK Stack (Logging).
+- Security: HashiCorp Vault, VPC Peering, mTLS, Bastion Host.
+
+Return a JSON object with:
+1. "tech_stack": [ "Next.js", "Go", "Kubernetes", "Kafka", "PostgreSQL", "Terraform", "GitHub Actions", "Prometheus" ]
+2. "architecture": {
+     "nodes": [
+       { "id": "1", "type": "custom", "data": { "label": "CloudFront CDN", "category": "infrastructure" }, "position": { "x": 0, "y": 100 } }
+     ],
+     "edges": [
+       { "id": "e1-2", "source": "1", "target": "2", "label": "HTTPS (TLS 1.3)" }
+     ]
+   }
+3. "estimated_monthly_cost": "$500 - $2,500+",
+4. "security_score": 98,
+5. "scalability_strategy": "K8s Horizontal Pod Autoscaling with Multi-Region Data Replication",
+6. "security_recommendations": [ "Zero-trust network architecture", "Automated secret rotation with Vault", "AI-driven anomaly detection in logs" ]
+
+LAYOUT RULES for "position":
+- Level 0 (y: 0): User Clients (Web/Mobile)
+- Level 1 (y: 100): Global Edge / DNS / CDN
+- Level 2 (y: 200): Load Balancer / API Gateway / Auth
+- Level 3 (y: 350-500): Core Microservices (spread horizontally)
+- Level 4 (y: 650): Message Queues / Caching Layers / Specialized Workers
+- Level 5 (y: 800): Persistent Databases (Primary/Standby)
+- Level 6 (y: 950): Infrastructure / Observability / DevOps
+
+Return JSON ONLY:
+{
+  "tech_stack": [],
+  "architecture": { "nodes": [], "edges": [] },
+  "estimated_monthly_cost": "",
+  "security_score": 0,
+  "scalability_strategy": "",
+  "security_recommendations": []
+}
+`;
+};

@@ -1,11 +1,30 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { runAI } from "../ai/pipeline/aiRunner";
+import redis from "../../config/redis";
+import crypto from "crypto";
 
-export const getMarketTrends = async (filters?: { industry?: string; targetAudience?: string }) => {
+export const getMarketTrends = async (filters?: { industry?: string; targetAudience?: string; refresh?: boolean }) => {
   const hasFilters = filters?.industry || filters?.targetAudience;
   const today = new Date().toLocaleDateString();
-  
+
+  // Create a cache key based on filters
+  const cacheKeyObj = { industry: filters?.industry || "general", audience: filters?.targetAudience || "general" };
+  const cacheKey = `research:${crypto.createHash('md5').update(JSON.stringify(cacheKeyObj)).digest('hex')}`;
+
+  // Check Redis Cache unless refresh is requested
+  if (!filters?.refresh) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        console.log("Research Redis Cache Hit!");
+        return JSON.parse(cached);
+      }
+    } catch (err) {
+      console.error("Redis cache error in research:", err);
+    }
+  }
+
   try {
     let items: any[] = [];
     let platformName = "Market Intelligence";
@@ -86,11 +105,20 @@ export const getMarketTrends = async (filters?: { industry?: string; targetAudie
 
     const enhanced = await runAI(prompt);
     
-    return items.map(t => ({
+    const result = items.map(t => ({
       ...t,
       platform: t.platform || platformName,
       gap: enhanced?.trends?.find((e: any) => e.name === t.name)?.gap || "Opportunity for disruption via vertical AI integration."
     }));
+
+    // Cache the result for 6 hours
+    try {
+      await redis.setex(cacheKey, 21600, JSON.stringify(result));
+    } catch (err) {
+      console.error("Failed to cache research results:", err);
+    }
+
+    return result;
 
   } catch (err) {
     console.error("Market Research Engine Critical Error:", err);
@@ -100,7 +128,7 @@ export const getMarketTrends = async (filters?: { industry?: string; targetAudie
 
 const parseRSS = (xml: string, platform: string) => {
   const $ = cheerio.load(xml, { xmlMode: true });
-  return $("item, entry").slice(0, 6).map((_, el) => {
+  return $("item, entry").slice(0, 12).map((_, el) => {
     const $el = $(el);
     const title = $el.find("title").text().trim();
     let description = ($el.find("description").text() || $el.find("summary").text() || $el.find("content").text() || "")
@@ -137,7 +165,7 @@ const scrapeGoogle = async (query: string) => {
       const $ = cheerio.load(data);
       const results: any[] = [];
 
-      $(selectors.container).slice(0, 6).each((_, el) => {
+      $(selectors.container).slice(0, 12).each((_, el) => {
         const name = $(el).find(selectors.title).first().text().trim();
         const description = $(el).find(selectors.snippet).first().text().trim();
         let link = $(el).find("a").first().attr("href");

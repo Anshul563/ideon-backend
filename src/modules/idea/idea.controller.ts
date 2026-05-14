@@ -118,8 +118,9 @@ export const createIdea = async (req: any, res: any) => {
     .returning();
 
   // Calculate final tokens left to return to UI
+  const isPaid = user.plan && user.plan !== "free";
   const finalUniqueCount = isExistingIdeaToday ? uniqueIdeasToday : uniqueIdeasToday + 1;
-  const tokensLeft = Math.max(0, 3 - finalUniqueCount);
+  const tokensLeft = isPaid ? 999 : Math.max(0, 3 - finalUniqueCount);
 
   res.json({ ...saved, tokensLeft });
 };

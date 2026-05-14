@@ -60,9 +60,10 @@ export const getProfile = async (req: any, res: Response) => {
     });
     
     const uniqueIdeasToday = new Set(filteredToday.map(i => i.idea.trim().toLowerCase())).size;
-    const tokensLeft = Math.max(0, 3 - uniqueIdeasToday);
+    const isPaid = user.plan && user.plan !== "free";
+    const tokensLeft = isPaid ? 999 : Math.max(0, 3 - uniqueIdeasToday);
 
-    console.log(`User ${userIdStr} - Unique ideas today: ${uniqueIdeasToday}, Tokens left: ${tokensLeft}`);
+    console.log(`User ${userIdStr} [Plan: ${user.plan || 'free'}] - Unique ideas today: ${uniqueIdeasToday}, Tokens left: ${isPaid ? 'Unlimited' : tokensLeft}`);
 
     // Remove password from response
     const { password, ...safeUser } = user;

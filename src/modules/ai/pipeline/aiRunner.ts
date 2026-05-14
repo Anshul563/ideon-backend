@@ -13,10 +13,10 @@ const extractJSON = (text: string | undefined | null) => {
 
 export const runAI = async (prompt: string, retries = 1): Promise<any> => {
   try {
-    // Run two different models for accuracy with individual fallbacks
+    // Run two different models (Groq Llama and HF Qwen) for accuracy
     const results = await Promise.allSettled([
+      analyzeIdea(prompt, MODELS.GROQ_LLAMA),
       analyzeIdea(prompt, MODELS.QWEN),
-      analyzeIdea(prompt, MODELS.LLAMA),
     ]);
 
     const resA = results[0].status === "fulfilled" ? results[0].value : null;
@@ -48,7 +48,7 @@ export const runAI = async (prompt: string, retries = 1): Promise<any> => {
     `;
 
     try {
-      const reconciledRaw = await analyzeIdea(reconciliationPrompt, MODELS.LLAMA);
+      const reconciledRaw = await analyzeIdea(reconciliationPrompt, MODELS.GROQ_LLAMA);
       const finalJSON = extractJSON(reconciledRaw);
       if (finalJSON) return finalJSON;
     } catch (judgeErr) {

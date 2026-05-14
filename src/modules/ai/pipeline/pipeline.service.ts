@@ -6,6 +6,7 @@ import {
   scoringPrompt,
   stressTestPrompt,
   roastPrompt,
+  architecturePrompt,
 } from "./prompts";
 
 import { runAI } from "./aiRunner";
@@ -13,11 +14,12 @@ import { getCompetitors } from "../../competitor/competitor.service";
 
 export const runFullPipeline = async (idea: string, context?: any) => {
   // Run all independent steps in parallel for maximum speed
-  const [expanded, market, competitors, improvements, scoring] = await Promise.all([
+  const [expanded, market, competitors, improvements, architecture, scoring] = await Promise.all([
     runAI(expandPrompt(idea, context)),
     runAI(marketPrompt(idea, context)),
     getCompetitors(idea, context),
     runAI(improvementPrompt(idea, context)),
+    runAI(architecturePrompt(idea, context)),
     runAI(scoringPrompt(idea, context)),
   ]);
 
@@ -29,6 +31,7 @@ export const runFullPipeline = async (idea: string, context?: any) => {
     market,
     competitors,
     improvements,
+    architecture,
     scoring,
   };
 };

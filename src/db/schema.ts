@@ -22,7 +22,7 @@ export const users = pgTable("users", {
   profilePic: text("profile_pic"),
   plan: text("plan").default("free"),
   role: userRoleEnum("role").default("user"),
-  subscriptionStatus: text("subscription_status").default("active"),
+  subscriptionStatus: text("subscription_status").default("Inactive"),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
