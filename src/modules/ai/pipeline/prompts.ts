@@ -1,9 +1,15 @@
-export const expandPrompt = (idea: string, context?: any) => {
+export const expandPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free" 
+    ? "Provide a brief, low-level overview (1-2 sentences per field)." 
+    : "Provide a comprehensive, high-level deep dive with detailed explanations and strategic insights.";
+
   return `
-Expand and clarify this SaaS idea in detail:
+Expand and clarify this SaaS idea:
 "${idea}"
 ${contextStr}
+
+Instruction: ${depthInstruction}
 
 Return JSON:
 {
@@ -14,12 +20,18 @@ Return JSON:
 `;
 };
 
-export const marketPrompt = (idea: string, context?: any) => {
+export const marketPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free"
+    ? "Provide a basic market demand level and a short reason."
+    : "Provide an in-depth market analysis including growth potential and specific market drivers.";
+
   return `
 Analyze market demand for:
 "${idea}"
 ${contextStr}
+
+Instruction: ${depthInstruction}
 
 Return JSON:
 {
@@ -29,14 +41,19 @@ Return JSON:
 `;
 };
 
-export const competitorPrompt = (idea: string, context?: any) => {
+export const competitorPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free"
+    ? "List 3 real competitors with basic descriptions."
+    : "List 5 real competitors with detailed analysis of their strategy, weaknesses, and your competitive advantage.";
+
   return `
-List 3 REAL, EXISTING companies that are competitors to this SaaS idea:
+List REAL, EXISTING companies that are competitors to this SaaS idea:
 "${idea}"
 ${contextStr}
 
-Do NOT use placeholders like "Company A" or "Competitor B". Use the names of actual real-world businesses.
+Instruction: ${depthInstruction}
+Do NOT use placeholders like "Company A". Use actual real-world businesses.
 
 Return JSON:
 {
@@ -47,12 +64,18 @@ Return JSON:
 `;
 };
 
-export const improvementPrompt = (idea: string, context?: any) => {
+export const improvementPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free"
+    ? "Suggest 2-3 simple improvements."
+    : "Suggest 5-7 advanced strategic improvements and pivot options.";
+
   return `
 Improve this SaaS idea:
 "${idea}"
 ${contextStr}
+
+Instruction: ${depthInstruction}
 
 Return JSON:
 {
@@ -62,12 +85,18 @@ Return JSON:
 `;
 };
 
-export const scoringPrompt = (idea: string, context?: any) => {
+export const scoringPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free"
+    ? "Provide a basic score and a short verdict."
+    : "Provide a rigorous multi-factor score with a detailed justification for each category.";
+
   return `
 Score this SaaS idea:
 "${idea}"
 ${contextStr}
+
+Instruction: ${depthInstruction}
 
 Return JSON:
 {
@@ -85,53 +114,55 @@ Return JSON:
 `;
 };
 
-export const stressTestPrompt = (idea: string, context?: any) => {
+export const stressTestPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}\nEst. Budget: ${context.budget}` : "";
+  const depthInstruction = plan === "free"
+    ? "Identify 2-3 basic risks."
+    : "Perform a brutal, multi-layered stress test uncovering deep structural risks and hidden failure modes.";
+
   return `
 BRUTALLY HONEST STRESS TEST:
 "${idea}"
 ${contextStr}
 
-Analyze why this idea will likely fail. Be extremely critical. 
-Focus on:
-1. Why it will fail (The hard truth)
-2. Market risks (What you are ignoring)
-3. Execution challenges (Why it's harder than you think)
+Instruction: ${depthInstruction}
 
 Return JSON:
 {
   "failure_reasons": [
-    { "title": "Too crowded market", "description": "Short explanation" },
-    { "title": "Hard to monetize", "description": "Short explanation" }
+    { "title": "Reason", "description": "Explanation" }
   ],
   "market_risks": [
-    { "title": "Low switching cost", "description": "Short explanation" }
+    { "title": "Risk", "description": "Explanation" }
   ],
   "execution_challenges": [
-    { "title": "Requires strong network effect", "description": "Short explanation" }
+    { "title": "Challenge", "description": "Explanation" }
   ],
-  "brutal_verdict": "A one-sentence harsh reality check"
+  "brutal_verdict": ""
 }
 `;
 };
 
-export const roastPrompt = (idea: string, context?: any) => {
+export const roastPrompt = (idea: string, context?: any, plan: string = "free") => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}` : "";
+  const depthInstruction = plan === "free"
+    ? "Give a light, funny roast."
+    : "Give a devastating, hyper-detailed roast that leaves no stone unturned. Be brutal.";
+
   return `
 ROAST THIS SAAS IDEA:
 "${idea}"
 ${contextStr}
 
-Be extremely sarcastic, mean, and funny. Point out why it's a "clown" idea. 
-Format your output as a series of "roast points" and a final "burn".
+Instruction: ${depthInstruction}
+Be extremely sarcastic, mean, and funny.
 
 Return JSON:
 {
   "roasts": [
-    { "point": "The 'Unique' Value Prop", "comment": "Sarcastic comment about why it's not unique" },
-    { "point": "The Monetization 'Plan'", "comment": "Sarcastic comment about the lack of revenue" }
+    { "point": "Point", "comment": "Comment" }
   ],
-  "the_burn": "One final extremely mean sentence"
+  "the_burn": ""
 }
 `;
 };
@@ -143,42 +174,7 @@ Design an ULTRA-ADVANCED, HYPER-SCALABLE system architecture for this SaaS idea:
 "${idea}"
 ${contextStr}
 
-Your goal is to provide a technical blueprint that represents a multi-region, enterprise-grade infrastructure. 
-Do NOT simplify. Include complex orchestration and high-availability patterns.
-
-Mandatory Components to include:
-- Edge Layer: Route 53, CloudFront CDN, WAF, Global Accelerator.
-- Access Layer: NGINX Ingress / Kong / AWS ALB, Cognito / Auth0 / Clerk.
-- Messaging: Kafka / RabbitMQ for event-driven flows, Redis for Pub/Sub.
-- Specialized Logic: Websocket Gateway (if real-time), Job Orchestrators (BullMQ, Temporal).
-- AI/Data: Vector DBs (Pinecone, Weaviate) if AI-related, Snowflake/BigQuery for analytics.
-- Persistent Tier: Multi-AZ PostgreSQL (RDS), ElastiCache (Redis/Memcached).
-- DevOps/Observability: CI/CD Pipeline (GitHub Actions), Prometheus/Grafana, ELK Stack (Logging).
-- Security: HashiCorp Vault, VPC Peering, mTLS, Bastion Host.
-
-Return a JSON object with:
-1. "tech_stack": [ "Next.js", "Go", "Kubernetes", "Kafka", "PostgreSQL", "Terraform", "GitHub Actions", "Prometheus" ]
-2. "architecture": {
-     "nodes": [
-       { "id": "1", "type": "custom", "data": { "label": "CloudFront CDN", "category": "infrastructure" }, "position": { "x": 0, "y": 100 } }
-     ],
-     "edges": [
-       { "id": "e1-2", "source": "1", "target": "2", "label": "HTTPS (TLS 1.3)" }
-     ]
-   }
-3. "estimated_monthly_cost": "$500 - $2,500+",
-4. "security_score": 98,
-5. "scalability_strategy": "K8s Horizontal Pod Autoscaling with Multi-Region Data Replication",
-6. "security_recommendations": [ "Zero-trust network architecture", "Automated secret rotation with Vault", "AI-driven anomaly detection in logs" ]
-
-LAYOUT RULES for "position":
-- Level 0 (y: 0): User Clients (Web/Mobile)
-- Level 1 (y: 100): Global Edge / DNS / CDN
-- Level 2 (y: 200): Load Balancer / API Gateway / Auth
-- Level 3 (y: 350-500): Core Microservices (spread horizontally)
-- Level 4 (y: 650): Message Queues / Caching Layers / Specialized Workers
-- Level 5 (y: 800): Persistent Databases (Primary/Standby)
-- Level 6 (y: 950): Infrastructure / Observability / DevOps
+Instruction: This is a PRO FEATURE. Design a multi-region, enterprise-grade technical blueprint.
 
 Return JSON ONLY:
 {

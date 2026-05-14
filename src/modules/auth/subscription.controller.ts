@@ -2,6 +2,7 @@ import { Response } from "express";
 import { db } from "../../config/db";
 import { users } from "../../db/schema";
 import { eq } from "drizzle-orm";
+import { delCache } from "../../utils/cache";
 
 export const subscribe = async (req: any, res: Response) => {
   const { plan } = req.body;
@@ -24,9 +25,14 @@ export const subscribe = async (req: any, res: Response) => {
     .set({ 
       plan, 
       subscriptionStatus: "active",
+      subscriptionStartedAt: new Date(),
       subscriptionEndsAt: endsAt 
     })
     .where(eq(users.id, userId));
+  
+  // Invalidate caches
+  await delCache(`user:profile:${userId}`);
+  await delCache("admin:stats");
 
   res.json({ message: `Successfully subscribed to ${plan} plan` });
 };

@@ -2,9 +2,9 @@ import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { db } from "../../config/db";
 import { ideas, users } from "../../db/schema";
-import { runFullPipeline, runStressTest, runRoast } from "../ai/pipeline/pipeline.service";
 import { generateEmbedding } from "../embedding/embedding.service";
-import redis from "../../config/redis";
+import { getCache, setCache, delCache } from "../../utils/cache";
+import { analysisQueue } from "../../config/queue";
 import crypto from "crypto";
 
 export const createIdea = async (req: any, res: any) => {
@@ -54,10 +54,10 @@ export const createIdea = async (req: any, res: any) => {
 
   // Check Redis Cache
   try {
-    const cachedResult = await redis.get(cacheKey);
+    const cachedResult = await getCache<any>(cacheKey);
     if (cachedResult) {
       console.log("Redis Cache Hit!");
-      const parsedResult = JSON.parse(cachedResult);
+      const parsedResult = cachedResult;
       
       // Still save to DB for user history
       const [saved] = await db
@@ -84,27 +84,12 @@ export const createIdea = async (req: any, res: any) => {
 
   const embedding = await generateEmbedding(idea);
 
-  let result;
-  
-  if (mode === "stress") {
-    result = await runStressTest(idea, context);
-  } else if (mode === "roast") {
-    result = await runRoast(idea, context);
-  } else {
-    result = await runFullPipeline(idea, context);
-  }
-
-  // Save to Redis (Cache for 24 hours)
-  try {
-    await redis.setex(cacheKey, 86400, JSON.stringify(result));
-  } catch (cacheErr) {
-    console.error("Failed to save to Redis:", cacheErr);
-  }
-
+  // Create pending entry in DB
+  const ideaId = uuidv4();
   const [saved] = await db
     .insert(ideas)
     .values({
-      id: uuidv4(),
+      id: ideaId,
       userId,
       idea,
       targetAudience,
@@ -112,17 +97,50 @@ export const createIdea = async (req: any, res: any) => {
       businessModel,
       budget,
       embedding,
-      result,
       mode,
+      status: "pending",
     })
     .returning();
+
+  // Push to Queue
+  await analysisQueue.add("analyze-idea", {
+    ideaId,
+    idea,
+    mode,
+    context,
+    userId: userIdStr
+  });
 
   // Calculate final tokens left to return to UI
   const isPaid = user.plan && user.plan !== "free";
   const finalUniqueCount = isExistingIdeaToday ? uniqueIdeasToday : uniqueIdeasToday + 1;
   const tokensLeft = isPaid ? 999 : Math.max(0, 3 - finalUniqueCount);
 
-  res.json({ ...saved, tokensLeft });
+  // Invalidate profile cache so UI updates immediately
+  await delCache(`user:profile:${userId}`);
+
+  res.json({ ...saved, tokensLeft, message: "Analysis queued" });
+};
+
+export const getJobStatus = async (req: any, res: any) => {
+  const { id } = req.params;
+  
+  try {
+    const [idea] = await db
+      .select()
+      .from(ideas)
+      .where(eq(ideas.id, id))
+      .limit(1);
+
+    if (!idea) return res.status(404).json({ message: "Job not found" });
+
+    res.json({ 
+      status: idea.status, 
+      result: idea.result 
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export const getIdeaById = async (req: any, res: any) => {
@@ -145,13 +163,19 @@ import { desc } from "drizzle-orm";
 
 export const getUserIdeas = async (req: any, res: any) => {
   const userIdStr = String(req.user.id);
+  const cacheKey = `user:ideas:${userIdStr}`;
 
   try {
+    const cached = await getCache<any[]>(cacheKey);
+    if (cached) return res.json(cached);
+
     const userIdeas = await db
       .select()
       .from(ideas)
       .where(eq(ideas.userId, userIdStr))
       .orderBy(desc(ideas.createdAt));
+
+    await setCache(cacheKey, userIdeas, 1800); // 30 min
 
     res.json(userIdeas);
   } catch (err) {
@@ -161,8 +185,12 @@ export const getUserIdeas = async (req: any, res: any) => {
 
 export const getAnalytics = async (req: any, res: any) => {
   const userIdStr = String(req.user.id);
+  const cacheKey = `user:analytics:${userIdStr}`;
 
   try {
+    const cached = await getCache<any>(cacheKey);
+    if (cached) return res.json(cached);
+
     const userIdeas = await db
       .select()
       .from(ideas)
@@ -196,11 +224,15 @@ export const getAnalytics = async (req: any, res: any) => {
       count
     })).sort((a, b) => b.count - a.count);
 
-    res.json({
+    const resData = {
       total,
       avgScore: Number(avgScore),
       verdicts
-    });
+    };
+
+    await setCache(cacheKey, resData, 1800); // 30 min
+
+    res.json(resData);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch analytics" });
   }

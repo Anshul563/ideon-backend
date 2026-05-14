@@ -1,6 +1,6 @@
 import axios from "axios";
 import { db } from "../../config/db";
-import { payments, users, coupons } from "../../db/schema";
+import { payments, users, coupons, plans } from "../../db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
@@ -15,7 +15,13 @@ export const createPaymentOrder = async (userId: string, amount: string, planId:
     throw new Error("ZAP_KEY is not defined in environment variables");
   }
 
-  let finalAmount = parseFloat(amount);
+  // Fetch plan amount from DB to prevent tampering
+  const [plan] = await db.select().from(plans).where(eq(plans.id, planId));
+  if (!plan) {
+    throw new Error("Invalid plan selected");
+  }
+
+  let finalAmount = parseFloat(plan.amount);
   let discountAmount = 0;
   let validatedCoupon = null;
 
@@ -148,13 +154,27 @@ export const updatePaymentStatus = async (orderId: string, txnId: string, status
     .returning();
 
   if (payment && finalStatus === "Success" && payment.planId) {
-    // Upgrade User Plan - Use userId directly (already a string)
+    let endsAt: Date | null = null;
+    const now = new Date();
+    
+    if (payment.planId === "monthly") {
+      endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    } else if (payment.planId === "yearly") {
+      endsAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    }
+
+    // Upgrade User Plan
     await db
       .update(users)
-      .set({ plan: payment.planId })
+      .set({ 
+        plan: payment.planId,
+        subscriptionStatus: "active",
+        subscriptionStartedAt: now,
+        subscriptionEndsAt: endsAt
+      })
       .where(eq(users.id, parseInt(payment.userId)));
     
-    console.log(`User ${payment.userId} upgraded to plan ${payment.planId} (Order: ${orderId})`);
+    console.log(`User ${payment.userId} upgraded to plan ${payment.planId} (active) (Order: ${orderId})`);
   }
 
   return payment;

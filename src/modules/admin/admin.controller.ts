@@ -1,6 +1,7 @@
 import { db } from "../../config/db";
 import { users, payments, coupons } from "../../db/schema";
 import { eq, sql, desc } from "drizzle-orm";
+import { getCache, setCache } from "../../utils/cache";
 
 // Stats
 export const getStats = async (req: any, res: any) => {
@@ -11,11 +12,13 @@ export const getStats = async (req: any, res: any) => {
       count: sql`count(*)` 
     }).from(payments).where(eq(payments.status, "Success"));
 
-    res.json({
+    const stats = {
       totalUsers: Number(totalUsers[0].count),
       totalRevenue: Number(totalPayments[0].revenue || 0),
       totalTransactions: Number(totalPayments[0].count),
-    });
+    };
+
+    res.json(stats);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }
@@ -31,6 +34,7 @@ export const getUsers = async (req: any, res: any) => {
       lastName: users.lastName,
       plan: users.plan,
       role: users.role,
+      subscriptionStatus: users.subscriptionStatus,
       createdAt: users.createdAt
     }).from(users).orderBy(desc(users.createdAt));
     

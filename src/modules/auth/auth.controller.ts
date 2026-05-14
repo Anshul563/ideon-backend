@@ -4,6 +4,7 @@ import { db } from "../../config/db";
 import { users } from "../../db/schema";
 import { registerUser, loginUser } from "./auth.service";
 import { registerSchema, loginSchema } from "./auth.validation";
+import { getCache, setCache, delCache } from "../../utils/cache";
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -38,8 +39,17 @@ export const login = async (req: Request, res: Response) => {
 import { ideas } from "../../db/schema";
 
 export const getProfile = async (req: any, res: Response) => {
+  const userId = req.user.id;
+  const cacheKey = `user:profile:${userId}`;
+
   try {
-    const [user] = await db.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+    // Try to get from cache
+    const cachedProfile = await getCache(cacheKey);
+    if (cachedProfile) {
+      return res.json(cachedProfile);
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -50,7 +60,7 @@ export const getProfile = async (req: any, res: Response) => {
     today.setHours(0, 0, 0, 0);
 
     // Cast userId to string for text column comparison
-    const userIdStr = String(req.user.id);
+    const userIdStr = String(userId);
     const userIdeasToday = await db.select().from(ideas)
       .where(eq(ideas.userId, userIdStr));
     
@@ -63,11 +73,14 @@ export const getProfile = async (req: any, res: Response) => {
     const isPaid = user.plan && user.plan !== "free";
     const tokensLeft = isPaid ? 999 : Math.max(0, 3 - uniqueIdeasToday);
 
-    console.log(`User ${userIdStr} [Plan: ${user.plan || 'free'}] - Unique ideas today: ${uniqueIdeasToday}, Tokens left: ${isPaid ? 'Unlimited' : tokensLeft}`);
-
     // Remove password from response
     const { password, ...safeUser } = user;
-    res.json({ ...safeUser, tokensLeft });
+    const profileData = { ...safeUser, tokensLeft };
+
+    // Set cache (TTL 10 minutes for profile as token counts change daily)
+    await setCache(cacheKey, profileData, 600);
+
+    res.json(profileData);
   } catch (err) {
     console.error("Error in getProfile:", err);
     res.status(500).json({ message: "Internal server error" });
@@ -86,6 +99,9 @@ export const updateProfilePic = async (req: any, res: Response) => {
     await db.update(users)
       .set({ profilePic: url })
       .where(eq(users.id, userId));
+    
+    // Invalidate cache
+    await delCache(`user:profile:${userId}`);
     
     res.json({ message: "Profile picture updated successfully" });
   } catch (err) {

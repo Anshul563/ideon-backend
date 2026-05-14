@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   plan: text("plan").default("free"),
   role: userRoleEnum("role").default("user"),
   subscriptionStatus: text("subscription_status").default("Inactive"),
+  subscriptionStartedAt: timestamp("subscription_started_at"),
   subscriptionEndsAt: timestamp("subscription_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -50,6 +51,7 @@ export const ideas = pgTable("ideas", {
   embedding: vector("embedding"),
   result: jsonb("result"),
   mode: text("mode").default("full"),
+  status: text("status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -63,5 +65,40 @@ export const payments = pgTable("payments", {
   couponCode: text("coupon_code"),
   discountAmount: text("discount_amount").default("0"),
   status: paymentStatusEnum("status").default("Pending"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id"),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  category: text("category").notNull(),
+  message: text("message").notNull(),
+  status: text("status").default("Open"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const plans = pgTable("plans", {
+  id: text("id").primaryKey(), // e.g., 'free', 'monthly', 'yearly', 'lifetime'
+  name: text("name").notNull(),
+  amount: text("amount").notNull(),
+  period: text("period").notNull(),
+  description: text("description"),
+  features: jsonb("features").notNull().$type<string[]>(),
+  billingNote: text("billing_note"),
+  buttonText: text("button_text"),
+  popular: text("popular").default("false"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const announcements = pgTable("announcements", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  isActive: text("is_active").default("true"),
+  bgColor: text("bg_color").default("#4F46E5"),
+  textColor: text("text_color").default("#FFFFFF"),
+  link: text("link"),
   createdAt: timestamp("created_at").defaultNow(),
 });
