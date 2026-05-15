@@ -58,10 +58,12 @@ export const runAI = async (prompt: string, retries = 1): Promise<any> => {
     // Fallback to resA if reconciliation fails
     return extractJSON(resA) || extractJSON(resB) || { error: "JSON Parsing Failed" };
   } catch (err: any) {
-    console.error("AI dual-run failed:", err);
+    console.error("AI dual-run failed:", err.message);
     if (retries > 0) {
+      console.log(`Retrying runAI... (${retries} left)`);
+      await new Promise(res => setTimeout(res, 3000));
       return runAI(prompt + "\nReturn ONLY JSON.", retries - 1);
     }
-    return { error: "Failed after multi-model attempt" };
+    return { error: "Failed after multi-model attempt: " + err.message };
   }
-};
+};

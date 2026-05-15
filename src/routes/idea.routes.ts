@@ -9,11 +9,11 @@ import { analysisLimiter } from "../middleware/rate-limit.middleware";
 const router = Router();
 
 router.post("/analyze", authMiddleware, analysisLimiter, createIdea);
-router.get("/status/:id", authMiddleware, getJobStatus);
+router.get("/status/:id", getJobStatus);
 router.get("/history", authMiddleware, getUserIdeas);
 router.get("/analytics", authMiddleware, getAnalytics);
 router.get("/research", authMiddleware, getTrends);
-router.get("/:id", authMiddleware, getIdeaById);
+router.get("/:id", getIdeaById);
 
 router.post("/similar", async (req, res) => {
   const { idea } = req.body;
