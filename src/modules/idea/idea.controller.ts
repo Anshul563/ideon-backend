@@ -20,6 +20,7 @@ export const createIdea = async (req: any, res: any) => {
 
   // Check plan and usage
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const isPaid = user.plan && user.plan !== "free";
 
   // Daily Token Limit Logic for Free Tier
   const today = new Date();
@@ -57,9 +58,20 @@ export const createIdea = async (req: any, res: any) => {
     const cachedResult = await getCache<any>(cacheKey);
     if (cachedResult) {
       console.log("Redis Cache Hit!");
-      const parsedResult = cachedResult;
       
-      // Still save to DB for user history
+      // If we already have this exact idea in DB for this user today, just return the latest one
+      if (isExistingIdeaToday) {
+        const latestIdea = filteredToday
+          .filter(i => i.idea.trim().toLowerCase() === normalizedIdea && i.mode === mode)
+          .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())[0];
+          
+        if (latestIdea) {
+          console.log("Returning existing DB record for today's duplicate idea");
+          return res.json({ ...latestIdea, tokensLeft: isPaid ? 999 : Math.max(0, 3 - uniqueIdeasToday) });
+        }
+      }
+
+      // Otherwise save to DB as a new history entry
       const [saved] = await db
         .insert(ideas)
         .values({
@@ -70,8 +82,8 @@ export const createIdea = async (req: any, res: any) => {
           geographicScope,
           businessModel,
           budget,
-          embedding: [], // Placeholder or re-generate if needed
-          result: parsedResult,
+          embedding: [],
+          result: cachedResult,
           mode,
         })
         .returning();
@@ -112,7 +124,6 @@ export const createIdea = async (req: any, res: any) => {
   });
 
   // Calculate final tokens left to return to UI
-  const isPaid = user.plan && user.plan !== "free";
   const finalUniqueCount = isExistingIdeaToday ? uniqueIdeasToday : uniqueIdeasToday + 1;
   const tokensLeft = isPaid ? 999 : Math.max(0, 3 - finalUniqueCount);
 
@@ -211,8 +222,9 @@ export const getAnalytics = async (req: any, res: any) => {
 
     userIdeas.forEach(idea => {
       const resData = idea.result as any;
-      const score = resData?.scoring?.totalScore || resData?.scoring?.score || 0;
-      totalScore += score;
+      // Use the actual path from the pipeline result
+      const score = resData?.scoring?.scores?.overall || resData?.scoring?.totalScore || resData?.scoring?.score || 0;
+      totalScore += Number(score);
 
       const verdict = resData?.scoring?.verdict || "Unknown";
       verdictCounts[verdict] = (verdictCounts[verdict] || 0) + 1;

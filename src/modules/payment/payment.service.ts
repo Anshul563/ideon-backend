@@ -3,6 +3,7 @@ import { db } from "../../config/db";
 import { payments, users, coupons, plans } from "../../db/schema";
 import { eq, and, gt } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
+import { delCache } from "../../utils/cache";
 
 export const createPaymentOrder = async (userId: string, amount: string, planId: string, couponCode?: string) => {
   const ZAP_KEY = process.env.ZAP_KEY;
@@ -161,6 +162,8 @@ export const updatePaymentStatus = async (orderId: string, txnId: string, status
       endsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     } else if (payment.planId === "yearly") {
       endsAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    } else if (payment.planId === "lifetime") {
+      endsAt = null; // No expiry
     }
 
     // Upgrade User Plan
@@ -175,6 +178,9 @@ export const updatePaymentStatus = async (orderId: string, txnId: string, status
       .where(eq(users.id, parseInt(payment.userId)));
     
     console.log(`User ${payment.userId} upgraded to plan ${payment.planId} (active) (Order: ${orderId})`);
+    
+    // Invalidate user profile cache so UI updates immediately
+    await delCache(`user:profile:${payment.userId}`);
   }
 
   return payment;

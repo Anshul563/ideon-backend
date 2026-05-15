@@ -62,7 +62,7 @@ export const analysisWorker = new Worker(
       throw error;
     }
   },
-  { connection, concurrency: 5 }
+  { connection, concurrency: 2 }
 );
 
 analysisWorker.on("completed", (job) => {
