@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379", {
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: null,
   retryStrategy(times) {
     if (times > 3) return null; // stop retrying
     return Math.min(times * 50, 2000);

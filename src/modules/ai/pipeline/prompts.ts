@@ -170,20 +170,77 @@ Return JSON:
 export const architecturePrompt = (idea: string, context?: any) => {
   const contextStr = context ? `\nContext:\nTarget Audience: ${context.targetAudience}\nGeographic Scope: ${context.geographicScope}\nBusiness Model: ${context.businessModel}` : "";
   return `
-Design an ULTRA-ADVANCED, HYPER-SCALABLE system architecture for this SaaS idea:
+Design a professional, high-fidelity system architecture for this SaaS idea:
 "${idea}"
 ${contextStr}
 
-Instruction: This is a PRO FEATURE. Design a multi-region, enterprise-grade technical blueprint.
+Instruction: This is a PRO FEATURE. Design a multi-layered, enterprise-grade technical blueprint using React Flow schema.
 
-Return JSON ONLY:
+VALID CATEGORIES (Use these for data.category):
+- "frontend": Web/Mobile apps
+- "backend": API, Microservices, Logic
+- "database": SQL, NoSQL, Cache
+- "infrastructure": CDN, Load Balancers, Cloud Services
+- "security": WAF, Auth, Encryption
+- "observability": Logging, Metrics
+- "messaging": Queues, PubSub
+- "devops": CI/CD, Registry
+- "external": Third-party APIs
+
+RETURN JSON ONLY:
 {
-  "tech_stack": [],
-  "architecture": { "nodes": [], "edges": [] },
-  "estimated_monthly_cost": "",
-  "security_score": 0,
-  "scalability_strategy": "",
-  "security_recommendations": []
+  "tech_stack": ["React", "Node.js", "etc"],
+  "architecture": {
+    "nodes": [
+      {
+        "id": "1",
+        "type": "custom",
+        "data": { "label": "Web Portal", "category": "frontend" },
+        "position": { "x": 250, "y": 0 }
+      },
+      {
+        "id": "2",
+        "type": "custom",
+        "data": { "label": "API Gateway", "category": "backend" },
+        "position": { "x": 250, "y": 150 }
+      }
+    ],
+    "edges": [
+      { "id": "e1-2", "source": "1", "target": "2", "animated": true, "label": "HTTPS/REST" }
+    ]
+  },
+  "estimated_monthly_cost": "$200 - $500",
+  "security_score": 95,
+  "scalability_strategy": "Auto-scaling groups with multi-region replication.",
+  "security_recommendations": ["Implement zero-trust", "RBAC"],
+  "database_schema": [
+    {
+      "table": "users",
+      "columns": [
+        { "name": "id", "type": "uuid", "key": "primary" },
+        { "name": "email", "type": "varchar", "key": "unique" },
+        { "name": "password_hash", "type": "text" },
+        { "name": "created_at", "type": "timestamp" }
+      ]
+    },
+    {
+      "table": "projects",
+      "columns": [
+        { "name": "id", "type": "uuid", "key": "primary" },
+        { "name": "user_id", "type": "uuid", "key": "foreign", "references": { "table": "users", "column": "id" } },
+        { "name": "title", "type": "varchar" },
+        { "name": "description", "type": "text" }
+      ]
+    }
+  ]
 }
+
+LAYOUT TIPS:
+- Level 0 (y: 0): Clients
+- Level 1 (y: 150): Entry/CDN
+- Level 2 (y: 300): API/Backend
+- Level 3 (y: 450): Databases/Cache
+- Level 4 (y: 600+): DevOps/Monitoring
+- Spread x-coordinates (100, 400, 700) to avoid overlap.
 `;
 };

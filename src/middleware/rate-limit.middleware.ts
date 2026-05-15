@@ -32,7 +32,7 @@ export const authLimiter = rateLimit({
 
 export const analysisLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20, // Limit analysis requests
+  max: 100, // Increased for testing and development flow
   standardHeaders: true,
   legacyHeaders: false,
   store: new RedisStore({

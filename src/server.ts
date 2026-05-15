@@ -13,6 +13,7 @@ import supportRoutes from "./routes/support.routes";
 import planRoutes from "./modules/plan/plan.routes";
 import announcementRoutes from "./modules/announcement/announcement.routes";
 import { apiLimiter } from "./middleware/rate-limit.middleware";
+import "./modules/idea/idea.worker"; // Start the analysis worker
 
 const app = express();
 
